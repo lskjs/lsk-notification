@@ -29,7 +29,7 @@ export default (ctx, mctx) => (
       let notifications = [];
       if (isAuth) {
         const { data } = await ctx.api.fetch('/api/module/notification');
-        notifications = data.slice(0, limit); // TODO: СДелать потом по нормальному на сервере
+        notifications = (data || []).slice(0, limit); // TODO: СДелать потом по нормальному на сервере
         // notifications = data.map((e) => {
         //   e.action = this.convertAction(e.action);
         //   return e;

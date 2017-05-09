@@ -21,7 +21,7 @@ export default (ctx) => {
       await notification.save();
       if (params.userId) {
         const room = this.getRoomName(params.userId);
-        notification = await this.populate2(notification);
+        notification = await this.populate(notification);
         this.emit({ room, data: notification });
       }
       return notification;
@@ -44,7 +44,8 @@ export default (ctx) => {
       socket.join(roomName);
     }
 
-    async populate2(notification) {
+    @autobind
+    async populate(notification) {
       const { Notification } = this.models;
       try {
         await Notification.populate(notification, {
@@ -69,28 +70,11 @@ export default (ctx) => {
       api.get('/', isAuth, async (req) => {
         const userId = req.user._id;
         const params = req.allParams();
-        let notifications = await Notification.find({
+        const notifications = await Notification.find({
           userId,
           ...params,
         });
-        notifications = await Promise.all(notifications.map((notification) => {
-          return new Promise(async (resolve) => {
-            try {
-              await Notification.populate(notification, {
-                path: 'object',
-                model: notification.objectType,
-              });
-            } catch (err) {}
-            try {
-              await Notification.populate(notification, {
-                path: 'subject',
-                model: notification.subjectType,
-              });
-            } catch (err) {}
-            return resolve(notification);
-          });
-        }));
-        return notifications;
+        return await Promise.each(notifications, this.populate);
       });
       api.post('/', isAuth, async (req) => {
         const params = req.allParams();
