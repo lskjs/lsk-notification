@@ -5,8 +5,7 @@ import { OverlayTrigger, Popover } from 'react-bootstrap';
 import moment from 'moment';
 import A from 'lsk-general/General/A';
 
-import Bell from 'react-icons2/mdi/bell';
-import BellRing from 'react-icons2/mdi/bell-ring';
+import Bell from 'react-icons2/mdi/bell-outline';
 
 @inject(stores => ({
   store: stores.uapp.modules.notification.notificationStore,
@@ -86,7 +85,7 @@ export default class NotificationCenter extends Component {
       <li>
         <OverlayTrigger trigger="click" rootClose placement="bottom" overlay={notifications}>
           <a styleName="link">
-            {store.list.length > 0 ? <BellRing /> : <Bell />}
+            <Bell />
             {store.list.length > 0 && <div styleName="badge" />}
           </a>
         </OverlayTrigger>
