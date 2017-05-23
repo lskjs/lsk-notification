@@ -1,5 +1,6 @@
 import React, { Component, PropTypes } from 'react';
 import css from 'importcss';
+import _ from 'lodash';
 import { observer, inject } from 'mobx-react';
 import { OverlayTrigger, Popover } from 'react-bootstrap';
 import moment from 'moment';
@@ -27,18 +28,18 @@ export default class NotificationCenter extends Component {
     return (
       <div style={{ fontSize: '90%' }}>
         {'На ваше предложение, '}
-        <A href={`/cabinet/offers/${notify.object._id}`}>{notify.object.title}</A>
+        <A href={`/cabinet/offers/${notify.objectId}`}>{_.get(notify, 'object.title')}</A>
         {', откликнулись: '}
-        <strong>{notify.subject.info.content}</strong>
+        <strong>{_.get(notify, 'subject.info.content')}</strong>
       </div>
     );
   }
   renderComment(notify) {
     return (
       <div style={{ fontSize: '90%' }}>
-        <A href={`/cabinet/user/${notify.object._id}`}>{notify.object.name}</A>
+        <A href={`/cabinet/user/${notify.objectId}`}>{_.get(notify, 'object.name')}</A>
         {' оставил вам сообщение '}
-        <strong>{notify.subject.content}</strong>
+        <strong>{_.get(notify, 'subject.content')}</strong>
       </div>
     );
   }
@@ -53,7 +54,10 @@ export default class NotificationCenter extends Component {
     const { store } = this.props;
     const notifications = (
       <Popover id="notifications" title="Уведомления">
-        {store.list.length > 0 ? (
+        <If condition={!store.list.length}>
+          <p>У вас нет новых уведомлений</p>
+        </If>
+        <If condition={store.list.length}>
           <div>
             {store.list.map(notify => (
               <div
@@ -76,9 +80,7 @@ export default class NotificationCenter extends Component {
               </A>
             </If>
           </div>
-        ) : (
-          <p>У вас нет новых уведомлений</p>
-        )}
+        </If>
       </Popover>
     );
     return (
