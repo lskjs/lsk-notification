@@ -1,6 +1,8 @@
 import { autobind } from 'core-decorators';
 import getModels from './models';
 
+import Expo from 'exponent-server-sdk';
+
 export default (ctx) => {
   return class NotificationModule {
 
@@ -12,6 +14,34 @@ export default (ctx) => {
       this.ws = ctx.app.ws('/api/module/notification')
         .on('connection', this.onSocket);
       ctx.app.use('/api/module/notification', this.getApi());
+
+      this.sendPushNotification();
+    }
+
+
+    sendPushNotification() {
+      console.log(1111111);
+      const somePushToken = 'ExponentPushToken[rDP4qaKsQi8jy_wV90lk_h]';
+      // let isPushToken = Expo.isExponentPushToken(somePushToken);
+      // Create a new Expo SDK client
+      let expo = new Expo();
+
+      // To send push notifications -- note that there is a limit on the number of
+      // notifications you can send at once, use expo.chunkPushNotifications()
+      (async function() {
+        try {
+          let receipts = await expo.sendPushNotificationsAsync([{
+            // The push token for the app user to whom you want to send the notification
+            to: somePushToken,
+            sound: 'default',
+            body: 'This is a test notification',
+            data: {withSome: 'data'},
+          }]);
+          console.log({receipts});
+        } catch (error) {
+          console.error({error});
+        }
+      })();
     }
 
     async notify(params) {

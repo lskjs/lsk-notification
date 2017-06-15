@@ -1,9 +1,12 @@
 {
   "name": "lsk-notification",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "author": "isuvorov",
   "license": "MIT",
   "scripts": {
     "release": "npm publish"
+  },
+  "dependencies": {
+    "exponent-server-sdk": "2.3.1"
   }
 }
