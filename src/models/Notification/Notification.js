@@ -41,6 +41,10 @@ export function getSchema(ctx) {
       type: String,
       index: true,
     },
+    info: {
+      type: Object,
+      default: {},
+    },
     viewedAt: {
       type: Date,
       default: null,

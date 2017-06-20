@@ -1,6 +1,5 @@
 import { autobind } from 'core-decorators';
 import getModels from './models';
-
 import Expo from 'exponent-server-sdk';
 
 export default (ctx) => {
@@ -9,43 +8,49 @@ export default (ctx) => {
     async init() {
       this.models = getModels(ctx);
       this.config = ctx.config.rating;
+      this.expo = new Expo();
     }
     async run() {
       this.ws = ctx.app.ws('/api/module/notification')
         .on('connection', this.onSocket);
       ctx.app.use('/api/module/notification', this.getApi());
 
-      this.sendPushNotification();
+      // const tokens = [
+      //   'ExponentPushToken[rDP4qaKsQi8jy_wV90lk_h]',
+      //   'ExponentPushToken[LgGcorMcbyL-oM8BwbhZaP]',
+      // ]
+      //
+      //
+      // tokens.forEach(token => this.sendPushNotification(token))
     }
 
 
-    sendPushNotification() {
-      console.log(1111111);
-      const somePushToken = 'ExponentPushToken[rDP4qaKsQi8jy_wV90lk_h]';
-      // let isPushToken = Expo.isExponentPushToken(somePushToken);
-      // Create a new Expo SDK client
-      let expo = new Expo();
+    async sendPushNotification(token, params = {}) {
+      // console.log('sendPushNotification', token);
+      let tokens;
+      if (Array.isArray(token)) {
+        tokens = token;
+      } else {
+        tokens = [token];
+      }
 
-      // To send push notifications -- note that there is a limit on the number of
-      // notifications you can send at once, use expo.chunkPushNotifications()
-      (async function() {
-        try {
-          let receipts = await expo.sendPushNotificationsAsync([{
-            // The push token for the app user to whom you want to send the notification
-            to: somePushToken,
-            sound: 'default',
-            body: 'This is a test notification',
-            data: {withSome: 'data'},
-          }]);
-          console.log({receipts});
-        } catch (error) {
-          console.error({error});
-        }
-      })();
+      // console.log('sendPushNotification', data);
+
+      const packs = tokens.map(to => ({
+        sound: 'default',
+        body: 'Вам пришло новое сообщение',
+        badge: 99,
+        // data: { qwe: 123123 },
+        ...params,
+        to,
+      }));
+
+      return this.expo.sendPushNotificationsAsync(packs);
     }
 
     async notify(params) {
       // console.log('notify', params);
+      const { User } = ctx.models;
       const { Notification } = this.models;
       let notification = new Notification(params);
       await notification.save();
@@ -53,6 +58,20 @@ export default (ctx) => {
         const room = this.getRoomName(params.userId);
         notification = await this.populate(notification);
         this.emit({ room, data: notification });
+
+        if (ctx.config.notification) {
+          const user = await User.findById(params.userId);
+          // console.log({ user, params });
+          if (user.private && user.private.pushTokens && user.private.pushTokens.length) {
+            const data = {
+              data: params,
+            }
+            if (params.message) {
+              data.text = params.message;
+            }
+            this.sendPushNotification(user.private.pushTokens, data);
+          }
+        }
       }
       return notification;
     }
@@ -97,6 +116,28 @@ export default (ctx) => {
       const { isAuth } = ctx.middlewares;
       const { Notification } = this.models;
       // Поиск
+      api.post('/addPushToken', isAuth, async (req) => {
+        // console.log('/addPushToken', req.data.pushToken);
+        const { pushToken } = req.data;
+        if (!pushToken) throw '!pushToken';
+        const { User } = ctx.models;
+        const userId = req.user._id;
+        const user = await User.findById(userId);
+        if (user.private) {
+          user.private = {};
+        }
+
+        const pushTokens = user.private.pushTokens || [];
+
+        if (pushTokens.indexOf(pushToken) === -1) {
+          pushTokens.push(pushToken);
+        }
+        user.private = {
+          ...user.private,
+          pushTokens,
+        };
+        return user.save();
+      });
       api.get('/', isAuth, async (req) => {
         const userId = req.user._id;
         const params = req.allParams();
