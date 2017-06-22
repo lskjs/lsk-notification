@@ -67,7 +67,7 @@ export default (ctx) => {
               data: params,
             }
             if (params.message) {
-              data.text = params.message;
+              data.body = params.message;
             }
             this.sendPushNotification(user.private.pushTokens, data);
           }
