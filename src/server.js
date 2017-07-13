@@ -1,4 +1,5 @@
 import { autobind } from 'core-decorators';
+import _ from 'lodash';
 import getModels from './models';
 import Expo from 'exponent-server-sdk';
 
@@ -24,6 +25,43 @@ export default (ctx) => {
       // tokens.forEach(token => this.sendPushNotification(token))
     }
 
+    async getNotificationCount(userId) {
+      // console.log('getNotificationCount', userId);
+      if (!ctx.modules.chat) return 0;
+      // const { User } = ctx.models;
+      const { Chat } = ctx.modules.chat.models;
+      const user = { _id: userId };
+
+      let chats = await Chat.find({
+        type: 'private',
+        userIds: { $all: [userId] },
+      });
+      // console.log({chats});
+      chats = await Chat.prepare(chats);
+      chats = chats.filter(c => c.message != null);
+      chats = chats.filter((item) => {
+        const { message } = item;
+        const viewedAt = (item.usersViewedAt || {})[userId];
+
+        // console.log('@@@0', item._id);
+        // console.log('@@@1', String(userId) !== String(message.userId));
+        // console.log('@@@2', viewedAt && new Date(message.createdAt) > new Date(viewedAt));
+
+        let unread = false;
+
+        if (String(userId) !== String(message.userId) && viewedAt && new Date(message.createdAt) > new Date(viewedAt)) {
+          unread = true;
+        }
+        // console.log('@@@3', unread);
+
+        return unread;
+      })
+
+      // console.log({chats});
+
+      return chats.length
+    }
+
 
     async sendPushNotification(token, params = {}) {
       // console.log('sendPushNotification', token);
@@ -34,12 +72,14 @@ export default (ctx) => {
         tokens = [token];
       }
 
+      // console.log('sendPushNotification', {params});
+      // const badge = await this.getNotificationCount(_.get(params, 'data.subjectId'))
       // console.log('sendPushNotification', data);
 
       const packs = tokens.map(to => ({
         sound: 'default',
         body: 'Вам пришло новое сообщение',
-        badge: 99,
+        // badge,
         // data: { qwe: 123123 },
         ...params,
         to,
@@ -57,7 +97,10 @@ export default (ctx) => {
       if (params.userId) {
         const room = this.getRoomName(params.userId);
         notification = await this.populate(notification);
-        this.emit({ room, data: notification });
+        const badge = await this.getNotificationCount(params.userId);
+        // console.log(23456789,{badge, notification});
+        // this.emit({ room, data: notification });
+        this.emit({ room, data: { ...notification.toObject(), badge } });
 
         if (ctx.config.notification) {
           const user = await User.findById(params.userId);
@@ -65,7 +108,8 @@ export default (ctx) => {
           if (user.private && user.private.pushTokens && user.private.pushTokens.length) {
             const data = {
               data: params,
-            }
+              badge,
+            };
             if (params.message) {
               data.body = params.message;
             }
@@ -137,6 +181,11 @@ export default (ctx) => {
           pushTokens,
         };
         return user.save();
+      });
+      api.get('/count', isAuth, async (req) => {
+        const userId = req.user._id;
+        const count = await this.getNotificationCount(userId);
+        return count;
       });
       api.get('/', isAuth, async (req) => {
         const userId = req.user._id;
