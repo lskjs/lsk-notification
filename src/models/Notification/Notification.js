@@ -75,6 +75,24 @@ export function getSchema(ctx) {
   schema.methods.send = async function () {
     return {};
   };
+  schema.statics.prepareOne = async function (notification) {
+    return notification;
+    try {
+      await this.populate(notification, {
+        path: 'object',
+        model: notification.objectType,
+      });
+    } catch (err) {}
+    try {
+      await this.populate(notification, {
+        path: 'subject',
+        model: notification.subjectType,
+      });
+    } catch (err) {}
+    return notification;
+  };
+
+  // await Promise.each(notifications, this.populate);
   return schema;
 }
 

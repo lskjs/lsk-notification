@@ -29,13 +29,51 @@ export default (ctx) => {
       // console.log('getNotificationCount', userId);
       if (!ctx.modules.chat) return 0;
       // const { User } = ctx.models;
-      const { Chat } = ctx.modules.chat.models;
+      const { Chat, Message } = ctx.modules.chat.models;
       const user = { _id: userId };
 
       let chats = await Chat.find({
         type: 'private',
         userIds: { $all: [userId] },
       });
+      // const totalCount = true;
+      if (this.config.totalCount) {
+        let viewedAts = chats.map((item) => {
+          const viewedAt = (item.usersViewedAt || {})[userId];
+          return {
+            _id: item._id,
+            viewedAt,
+          };
+        });
+        // .filter(i => i.viewedAt)
+
+
+        // console.log(11, { viewedAts });
+
+        viewedAts = await Promise.map(viewedAts, async ({ _id, viewedAt }) => {
+          const criteria = {
+            subjectType: 'Chat',
+            subjectId: _id,
+            userId: { $ne: userId },
+            // createdAt: { $gte: viewedAt },
+          };
+          if (viewedAt) {
+            criteria.createdAt = { $gte: viewedAt };
+          }
+          // console.log({criteria});
+          const count = await Message.count(criteria);
+
+          return {
+            _id,
+            viewedAt,
+            count,
+          };
+        });
+        // console.log(222, { viewedAts });
+
+        return _.sumBy(viewedAts, 'count') || 0;
+      }
+
       // console.log({chats});
       chats = await Chat.prepare(chats);
       chats = chats.filter(c => c.message != null);
@@ -55,11 +93,11 @@ export default (ctx) => {
         // console.log('@@@3', unread);
 
         return unread;
-      })
+      });
 
       // console.log({chats});
 
-      return chats.length
+      return chats.length;
     }
 
 
@@ -183,18 +221,27 @@ export default (ctx) => {
         return user.save();
       });
       api.get('/count', isAuth, async (req) => {
+        console.log(111);
         const userId = req.user._id;
         const count = await this.getNotificationCount(userId);
+        console.log({count});
         return count;
       });
       api.get('/', isAuth, async (req) => {
         const userId = req.user._id;
         const params = req.allParams();
-        const notifications = await Notification.find({
-          userId,
-          ...params,
+
+        const notifications = await Notification.findByParams({
+          filter: {
+            userId,
+            ...params,
+          },
         });
-        return await Promise.each(notifications, this.populate);
+        // const notifications = await Notification.find({
+        //   userId,
+        //   ...params,
+        // });
+        return Notification.prepare(notifications);// await Promise.each(notifications, this.populate);
       });
       api.post('/', isAuth, async (req) => {
         const params = req.allParams();
