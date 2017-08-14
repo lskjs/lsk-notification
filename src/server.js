@@ -8,7 +8,7 @@ export default (ctx) => {
 
     async init() {
       this.models = getModels(ctx);
-      this.config = ctx.config.rating;
+      this.config = ctx.config.notification;
       this.expo = new Expo();
     }
     async run() {
@@ -37,6 +37,7 @@ export default (ctx) => {
         userIds: { $all: [userId] },
       });
       // const totalCount = true;
+      // console.log('this.config.totalCount', this.config.totalCount, this.config);
       if (this.config.totalCount) {
         let viewedAts = chats.map((item) => {
           const viewedAt = (item.usersViewedAt || {})[userId];
@@ -140,7 +141,7 @@ export default (ctx) => {
         // this.emit({ room, data: notification });
         this.emit({ room, data: { ...notification.toObject(), badge } });
 
-        if (ctx.config.notification) {
+        if (this.config) {
           const user = await User.findById(params.userId);
           // console.log({ user, params });
           if (user.private && user.private.pushTokens && user.private.pushTokens.length) {
@@ -169,8 +170,11 @@ export default (ctx) => {
     @autobind
     onSocket(socket) {
       const { req } = socket;
-      // console.log('Connected!', req.user._id);
+      if (!req.user) {
+        __DEV__ && console.log({req});
+      }
       if (!req.user || !req.user._id) throw new Error('Not Auth');
+      __DEV__ && console.log('notification.onSocket @@@', req.user._id);
       const roomName = this.getRoomName(req.user._id);
       socket.join(roomName);
     }
@@ -221,10 +225,10 @@ export default (ctx) => {
         return user.save();
       });
       api.get('/count', isAuth, async (req) => {
-        console.log(111);
+        // console.log(111);
         const userId = req.user._id;
         const count = await this.getNotificationCount(userId);
-        console.log({count});
+        // console.log({count});
         return count;
       });
       api.get('/', isAuth, async (req) => {

@@ -16,9 +16,10 @@ export default (ctx, mctx) => (
     }
 
     async init() {
+      // console.log('NotificationStore.init');
       if (__SERVER__) return;
-      const isAuth = await ctx.auth.isAuthAsync();
-      if (!isAuth) return;
+      // const isAuth = await ctx.auth.isAuthAsync();
+      // if (!isAuth) return;
       this.socket = ctx.api.ws('module/notification');
       this.socket.on('notification', this.onNotification);
     }
