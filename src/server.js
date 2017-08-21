@@ -8,14 +8,14 @@ export default (ctx) => {
 
     async init() {
       this.models = getModels(ctx);
-      this.config = ctx.config.notification;
+      this.config = ctx.config.notification || {};
       this.expo = new Expo();
     }
+
     async run() {
       this.ws = ctx.app.ws('/api/module/notification')
         .on('connection', this.onSocket);
       ctx.app.use('/api/module/notification', this.getApi());
-
       // const tokens = [
       //   'ExponentPushToken[rDP4qaKsQi8jy_wV90lk_h]',
       //   'ExponentPushToken[LgGcorMcbyL-oM8BwbhZaP]',
@@ -174,7 +174,7 @@ export default (ctx) => {
         __DEV__ && console.log({req});
       }
       if (!req.user || !req.user._id) throw new Error('Not Auth');
-      __DEV__ && console.log('notification.onSocket @@@', req.user._id);
+      // __DEV__ && console.log('notification.onSocket @@@', req.user._id);
       const roomName = this.getRoomName(req.user._id);
       socket.join(roomName);
     }
