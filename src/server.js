@@ -170,9 +170,9 @@ export default (ctx) => {
     @autobind
     onSocket(socket) {
       const { req } = socket;
-      if (!req.user) {
-        __DEV__ && console.log({req});
-      }
+      // if (!req.user) {
+      //   __DEV__ && console.log({req});
+      // }
       if (!req.user || !req.user._id) throw new Error('Not Auth');
       // __DEV__ && console.log('notification.onSocket @@@', req.user._id);
       const roomName = this.getRoomName(req.user._id);
