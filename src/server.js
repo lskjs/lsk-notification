@@ -127,10 +127,15 @@ export default (ctx) => {
       return this.expo.sendPushNotificationsAsync(packs);
     }
 
+    @autobind
     async notify(params) {
-      // console.log('notify', params);
+      // console.log('notify', params, ctx.);
+      // console.log(111);
       const { User } = ctx.models;
+      // console.log(222);
       const { Notification } = this.models;
+      // console.log(333);
+
       let notification = new Notification(params);
       await notification.save();
       if (params.userId) {
